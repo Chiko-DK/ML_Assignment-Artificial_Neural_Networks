@@ -1,4 +1,5 @@
-
+import torch
+import torch.nn as nn
 from torchvision import datasets
 from matplotlib.pyplot import imshow
 import matplotlib.pyplot as plt
@@ -35,15 +36,7 @@ y_train = train.targets
 X_test = test.data.float()
 y_test = test.targets
 
-# Convert to numpy arrays
-X_train = X_train.numpy()
-y_train = y_train.numpy()
-X_test = X_test.numpy()
-y_test = y_test.numpy()
-
-# print(X_train[0])
-# print(y_train[0])
-
+# Print the shape of the data
 def display_image(X_i, y_i):
     plt.imshow(X_i, cmap='binary')
     plt.title("Label: %d" % y_i)
@@ -53,7 +46,7 @@ def display_image(X_i, y_i):
 # for i in range():
 #display_image(X_train[7], y_train[7])
 
-# Now let's define a function that will find an instance of a given digit.
+# Now let's define a function that will find an instance of a given class
 def find_digit(digit, X, y):
     """
     Find an instance of a given digit in the dataset.
@@ -82,10 +75,56 @@ X_digit = find_digit(label, X_train, y_train)
 # plt.tight_layout()
 # plt.show()
 
+#Split training data into training and validation sets
+# Sample random indices for validation
+test_size = X_test.shape[0]
+indices = np.random.choice(X_train.shape[0], test_size, replace=False)
+
+# Create validation set
+X_valid = X_train[indices]
+y_valid = y_train[indices]
+
+# Remove validation set from training set
+X_train = np.delete(X_train, indices, axis=0)
+y_train = np.delete(y_train, indices, axis=0)
+
+# Print final data sizes
+# print(X_train.shape)
+# print(y_train.shape)
+# print(X_valid.shape)
+# print(y_valid.shape)
+# print(X_test.shape)
+# print(y_test.shape)
+
 X_train = X_train.reshape(-1, 28*28)
+X_valid = X_valid.reshape(-1, 28*28)
 X_test = X_test.reshape(-1, 28*28)
 
+batch_size = 64
 
+train_dataset = torch.utils.data.TensorDataset(X_train, y_train)
+val_dataset = torch.utils.data.TensorDataset(X_valid, y_valid)
+test_dataset = torch.utils.data.TensorDataset(X_test, y_test)
 
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+val_loader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
+test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
+# Define the artificial neural networks model
+class ClassifierANN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Linear(784, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 10)
+        )
 
+    def forward(self, x):
+        return self.model(x)
+
+# Train the model
