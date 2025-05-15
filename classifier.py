@@ -79,6 +79,8 @@ class ClassifierANN(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+print("Training the model...")
+print("...")
 # Train the model
 model = ClassifierANN()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -125,22 +127,35 @@ for epoch in range(EPOCHS):
     val_loss /= len(val_loader.dataset)
     val_accuracy = val_correct / len(val_loader.dataset)
 
-    print(f"Epoch {epoch+1}/{EPOCHS} "
-          f"| Train Loss: {train_loss:.4f}, Train Acc: {train_accuracy:.4f} "
-         f"| Val Loss: {val_loss:.4f}, Val Acc: {val_accuracy:.4f}")
-    # print(f"--- Training Progress: {int(((epoch+1)/EPOCHS)*100)}% ---")
+    # print(f"Epoch {epoch+1}/{EPOCHS} "
+    #       f"| Train Loss: {train_loss:.4f}, Train Acc: {train_accuracy:.4f} "
+    #      f"| Val Loss: {val_loss:.4f}, Val Acc: {val_accuracy:.4f}")
+    print(f"--- Training Progress: {int(((epoch+1)/EPOCHS)*100)}% ---")
 
-# Display a few images and their predictions
+# Compute accuracy
 model.eval()
 with torch.no_grad():
-    for i in range(10):
-        idx = random.randint(0, X_test.shape[0])
-        image = X_test[idx]
-        label = y_test[idx]
-        output = model(image.clone().detach().view(1, -1))
-        _, predicted = torch.max(output, 1)
-        print("True label: %d, Predicted label: %d" % (label, predicted))
-        # display_image(image.reshape(28, 28), label)
+    correct = 0
+    total = 0
+    for images, labels in test_loader:
+        outputs = model(images)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+    # print('Test Accuracy of the model on the 10000 test images: {} %'.format(100 * correct / total))
+
+# # Display a few images and their predictions
+# model.eval()
+# with torch.no_grad():
+#     for i in range(10):
+#         idx = random.randint(0, X_test.shape[0])
+#         image = X_test[idx]
+#         label = y_test[idx]
+#         output = model(image.clone().detach().view(1, -1))
+#         _, predicted = torch.max(output, 1)
+#         print("True label: %d, Predicted label: %d" % (label, predicted))
+#         # display_image(image.reshape(28, 28), label)
 
 
 # Mapping from class index to label
@@ -151,7 +166,6 @@ class_labels = [
 
 print("Done!")
 
-# Inference loop
 print("Please enter a filepath:")
 while True:
     user_input = input("> ")
@@ -168,13 +182,11 @@ while True:
         img = torchvision.io.read_image(user_input, mode=torchvision.io.ImageReadMode.GRAY)
         img = img.squeeze()         # Convert shape (1, 28, 28) → (28, 28)
 
-        # Resize if needed
         if img.shape != (28, 28):
             img_pil = transforms.ToPILImage()(img.unsqueeze(0))
             img_pil = img_pil.resize((28, 28))
             img = transforms.ToTensor()(img_pil).squeeze() * 255.0
 
-        # Normalize and flatten image
         img = img.float().reshape(1, 28*28) / 255.0
 
         model.eval()
